@@ -6,10 +6,10 @@ use std::path::PathBuf;
 
 // rufus - for file operations
 
-pub fn delete_version(games_dir: &PathBuf, version: &String) -> Result<(), IO_Error> {
-    let release_dir: PathBuf = games_dir.join(version);
+pub fn delete_version(games_dir: &PathBuf, version_id: &String) -> Result<(), IO_Error> {
+    let release_dir: PathBuf = games_dir.join(version_id);
 
-    let exec_dir: PathBuf = release_dir.join(version).join("WindowsNoEditor/VotV.exe");
+    let exec_dir: PathBuf = release_dir.join(version_id).join("WindowsNoEditor/VotV.exe");
     assert!(exec_dir.is_file(), "No installation found with that name."); // O_O''
 
     remove_dir_all(release_dir)?;
@@ -17,8 +17,8 @@ pub fn delete_version(games_dir: &PathBuf, version: &String) -> Result<(), IO_Er
     Ok(())
 }
 
-pub fn install_version(games_dir: &PathBuf, version: &String, bytes: Bytes) -> Result<(), Zerror> {
-    decompress(Cursor::new(bytes), games_dir.join(version))?;
+pub fn install_version(games_dir: &PathBuf, version_id: &String, bytes: Bytes) -> Result<(), Zerror> {
+    decompress(Cursor::new(bytes), games_dir.join(version_id))?;
     Ok(())
 }
 
