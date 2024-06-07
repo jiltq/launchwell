@@ -9,6 +9,7 @@ extern crate open;
 mod maxwell;
 mod saatana;
 mod rufus;
+mod argemwell;
 
 #[derive(Parser)]
 struct Cli {
@@ -39,13 +40,22 @@ fn main() {
         maxwell::Commands::Install {version} => {
             let id: &String = &saatana::translate_input_to_id(version);
             assert!(!games_dir.join(id).is_dir(), "Version is already installed.");
-            let bytes = saatana::download_version(id).expect("Failed to download version.");
-            println!("Downloaded. Installing...");
-            rufus::install_version(&games_dir, id, bytes).expect("xd");
+            let bytes = saatana::fetch_bytes(&format!("https://invotek.net/votvarc/{}.7z", version)).expect("Failed to download version.");
+            rufus::extract_7z_to_dir(&games_dir.join(id), bytes).expect("xd");
+            rufus::mark_dir_as_votv(&games_dir.join(id)).expect("xd");
         }
         maxwell::Commands::Uninstall {version} => {
             let id: &String = &saatana::translate_input_to_id(version);
             rufus::delete_version(&games_dir, id).expect("xd")
+        }
+        maxwell::Commands::Modwiki {} => {
+            open::that(argemwell::MOD_WIKI_URL).expect("Failed to open modwiki");
+        }
+        maxwell::Commands::UE4ss { votv_version} => {
+            let dl_url: String = argemwell::fetch_ue4ss_url();
+            let bytes = saatana::fetch_bytes(&dl_url).expect("xd");
+            let exec_dir = games_dir.join(votv_version).join(votv_version).join(rufus::UE4SS_INSTALL_DIR);
+            rufus::extract_zip_to_dir(&exec_dir, bytes).expect("noo");
         }
         _ => {}
     }

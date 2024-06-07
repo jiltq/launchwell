@@ -24,5 +24,11 @@ pub enum Commands {
     /// Opens the "Assets" folder
     Assets {},
     /// Lists installed versions
-    Installed {}
+    Installed {},
+    Modwiki {},
+
+    UE4ss {
+        /// The version of the VotV installation to install UE4SS to
+        votv_version: String
+    }
 }

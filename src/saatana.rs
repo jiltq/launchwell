@@ -1,22 +1,28 @@
 use bytes::Bytes;
-use reqwest::blocking::get;
+use reqwest::blocking::{get, Client};
 use reqwest::Error as R_Error;
 use select::document::Document;
 use select::node::Node;
-use select::predicate::{Class, Name};
+use select::predicate::{Class, Name, And, Attr, Predicate};
 use std::collections::HashMap;
+use std::time::Duration;
+use reqwest::IntoUrl;
+
+// https://github.com/UE4SS-RE/RE-UE4SS/releases/latest
 
 // saatana - web operations and version info
 
-pub fn download_version(version_id: &String) -> Result<Bytes, R_Error> {
-    let response: Bytes = get(&format!("https://invotek.net/votvarc/{}.7z", version_id))?.bytes()?;
-    Ok(response)
-}
+pub static VOTV_7Z_URL: &str = "https://invotek.net/votvarc/{}.7z";
+pub static CLIENT_PATIENCE: Duration = Duration::from_secs(60 * 5);
 
-pub fn get_invotek_doc() -> Result<Document, R_Error> {
-    let html: String = get("https://invotek.net/releases.html")?.text()?;
+pub fn fetch_doc<T: IntoUrl>(url: T) -> Result<Document, R_Error> {
+    let html: String = get(url)?.text()?;
     let document: Document = Document::from(html.as_str());
     Ok(document)
+}
+
+pub fn fetch_bytes<T: IntoUrl>(url: T) -> Result<Bytes, R_Error> {
+    Client::builder().timeout(CLIENT_PATIENCE).build()?.get(url).send()?.bytes()
 }
 
 pub fn trim_alias(mut alias: String) -> String {
@@ -24,17 +30,6 @@ pub fn trim_alias(mut alias: String) -> String {
         alias.drain(..index);
     }
     alias.replace(" ", "")
-}
-
-pub fn to_id<'a>(input: &'a String, alias_map: &'a HashMap<String, String>) -> Option<&'a String> {
-    if alias_map.values().any(|v: &String| v == input) {
-        return Some(input)
-    } else if let Some(value) = alias_map.get(input) {
-        return Some(value)
-    } else {
-        let trimmed = trim_alias(input.clone());
-        return alias_map.get(&trimmed)
-    }
 }
 
 pub fn get_version_aliases(document: &Document) -> HashMap<String, String> {
@@ -61,7 +56,7 @@ pub fn get_version_aliases(document: &Document) -> HashMap<String, String> {
             2 => {
                 map.insert(trim_alias(soup.clone()), header_parts[1].replace(" ", ""));
             }
-            _ => break
+            _ => continue
         }
     }
 
@@ -69,7 +64,7 @@ pub fn get_version_aliases(document: &Document) -> HashMap<String, String> {
 }
 
 pub fn translate_input_to_id(input: &String) -> String {
-    let invotek_res: Result<Document, R_Error> = get_invotek_doc();
+    let invotek_res: Result<Document, R_Error> = fetch_doc("https://invotek.net/releases.html");
     if invotek_res.is_err() { return input.clone() } // either invotek or the user is offline
     let invotek_doc: Document = invotek_res.expect("Something messed up!");
 
