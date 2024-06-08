@@ -10,6 +10,7 @@ use reqwest::IntoUrl;
 // argemwell - modding stuffs
 
 pub static MOD_WIKI_URL: &str = "https://modding.ariral.space";
+pub static UE4SS_MAIN_URL: &str = "https://github.com/UE4SS-RE/RE-UE4SS/releases/latest";
 
 /*
     MOD_AUTHOR-MOD_NAME-#.#.#.zip

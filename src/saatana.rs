@@ -1,12 +1,13 @@
 use bytes::Bytes;
-use reqwest::blocking::{get, Client};
+use reqwest::blocking::{get, ClientBuilder, Response};
 use reqwest::Error as R_Error;
 use select::document::Document;
 use select::node::Node;
 use select::predicate::{Class, Name, And, Attr, Predicate};
 use std::collections::HashMap;
+use std::str::Split;
 use std::time::Duration;
-use reqwest::IntoUrl;
+use reqwest::{IntoUrl, Error};
 
 // https://github.com/UE4SS-RE/RE-UE4SS/releases/latest
 
@@ -15,14 +16,20 @@ use reqwest::IntoUrl;
 pub static VOTV_7Z_URL: &str = "https://invotek.net/votvarc/{}.7z";
 pub static CLIENT_PATIENCE: Duration = Duration::from_secs(60 * 5);
 
-pub fn fetch_doc<T: IntoUrl>(url: T) -> Result<Document, R_Error> {
-    let html: String = get(url)?.text()?;
-    let document: Document = Document::from(html.as_str());
-    Ok(document)
+pub fn fetch_doc<T: IntoUrl>(url: T) -> Result<Document, Error> {
+    Ok(Document::from(fetch(url)?.text()?.as_str()))
 }
 
-pub fn fetch_bytes<T: IntoUrl>(url: T) -> Result<Bytes, R_Error> {
-    Client::builder().timeout(CLIENT_PATIENCE).build()?.get(url).send()?.bytes()
+pub fn fetch_bytes<T: IntoUrl>(url: T) -> Result<Bytes, Error> {
+    fetch(url)?.bytes()
+}
+
+fn fetch<T: IntoUrl>(url: T) -> Result<Response, Error> {
+    ClientBuilder::new().timeout(CLIENT_PATIENCE).build()?.get(url).send()
+}
+
+pub fn has_internet() -> bool {
+    ClientBuilder::new().timeout(CLIENT_PATIENCE).build().is_err()
 }
 
 pub fn trim_alias(mut alias: String) -> String {
@@ -30,6 +37,13 @@ pub fn trim_alias(mut alias: String) -> String {
         alias.drain(..index);
     }
     alias.replace(" ", "")
+}
+
+pub fn get_latest_version_id(invotek_doc: &Document) -> Option<String> {
+    let release_container: Node = invotek_doc.find(Class("release-container")).next()?;
+    let text: String = release_container.find(Name("h1")).next()?.text();
+    let splits: Vec<&str> = text.split("/").collect();
+    Some(splits.get(1)?.trim().to_string())
 }
 
 pub fn get_version_aliases(document: &Document) -> HashMap<String, String> {
